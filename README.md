@@ -14,6 +14,7 @@ This bot should allow users of the official Monster Sanctuary Discord to input a
 * Using portable code that can be hosted in cloud environments
 * Allowing interaction with database via Discord
 * Use [bwmarrin/discordgo](https://godoc.org/github.com/bwmarrin/discordgo) as a Discord library
+* Use [go-sql-driver/mysql](https://pkg.go.dev/github.com/go-sql-driver/mysql) as the MySQL Driver for the database
 
 
 ## Database Schema
