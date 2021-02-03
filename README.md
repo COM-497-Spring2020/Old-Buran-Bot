@@ -18,6 +18,7 @@ This bot should allow users of the official Monster Sanctuary Discord to input a
 * Web interface using Discord OAuth to interact with Database (if there is time at the end)
 
 
+
 ## Database Schema
 ```
 +-------------+------------+------+-----+---------------------+-------------------------------+
@@ -30,3 +31,13 @@ This bot should allow users of the official Monster Sanctuary Discord to input a
 | TimeStamp   | timestamp  | NO   |     | 0000-00-00 00:00:00 | on update current_timestamp() |
 +-------------+------------+------+-----+---------------------+-------------------------------+
 ```
+
+## Timeline
+
+1. Freshly staged Gentoo server by week of 02/01/2021
+1. Create and Implement SQL Database by week of 02/15/2021
+1. Begin basic tests in Go language by week of 02/22/2021
+1. Shell out skeleton of Discord Bot deliverable by week of 03/01/2021
+1. Link Go Bot code to Database by week of 03/08/2021
+1. Alpha tests of Discord Bot with Database by week of 03/08/2021
+1. Begin beta tests in Monster Sanctuary Official Discord by week of 03/15/2021
