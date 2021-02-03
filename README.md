@@ -10,7 +10,8 @@ This bot should allow users of the official Monster Sanctuary Discord to input a
 * Written in Go
 * Using an SQL Database
 * Allowing Screenshots
-* Using Gentoo to host the bot and database
+* Using Gentoo to host the database
+* Using portable code that can be hosted in cloud environments
 * Allowing interaction with database via Discord
 
 
