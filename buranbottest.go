@@ -43,7 +43,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
-	if strings.Contains(m.Content, "!hi") {
-		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("%+v Hello!", m.Author.Mention()))
+	if strings.Contains(m.Content, "!iaadd") {
+		IAadd(s, m)
 	}
 }
