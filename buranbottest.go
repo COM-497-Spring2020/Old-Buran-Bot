@@ -54,6 +54,24 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		IAadd(s, parts)
 		return
 	}
+	if strings.Contains(parts[1], "pvpadd") {
+		parts[0] = m.ChannelID
+		parts[1] = m.Author.ID
+		PvPadd(s, parts)
+		return
+	}
+	if strings.Contains(parts[1], "iacheck") {
+		parts[0] = m.ChannelID
+		parts[1] = m.Author.ID
+		IAcheck(s, parts)
+		return
+	}
+	if strings.Contains(parts[1], "pvpcheck") {
+		parts[0] = m.ChannelID
+		parts[1] = m.Author.ID
+		PvPcheck(s, parts)
+		return
+	}
 
 	// No valid command found
 	s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Unknown command: %+v", parts[1]))
@@ -90,4 +108,43 @@ func IAadd(s *discordgo.Session, cmd []string) {
 		s.ChannelMessageSend(cmd[0], fmt.Sprintf("Integer score detected: %+v", score))
 	}
 
+}
+
+// PvPadd will add a PvP score to the database
+func PvPadd(s *discordgo.Session, cmd []string) {
+	// Return if there aren't enough parts
+	if len(cmd) < 3 {
+		s.ChannelMessageSend(cmd[0], fmt.Sprintf("Invalid use of pvpadd command <@%+v>. Not enough arguments.", cmd[1]))
+		return
+	}
+	// For determining how to store in the database
+	isImage := true
+	// Score for echo if int or string
+	score := "0"
+	// Check if message is a link to an image on Discord's CDN
+	if !strings.HasPrefix(cmd[2], "https://cdn.discordapp.com/attachments/") {
+		// Message was not an image
+		isImage = false
+		// Try to convert to an int
+		if _, ok := strconv.Atoi(cmd[2]); ok != nil {
+			// Could not convert to an int, invalid score!
+			s.ChannelMessageSend(cmd[0], fmt.Sprintf("Invalid use of pvpadd command <@%+v>.", cmd[1]))
+			return
+		}
+	}
+	// Save score for printing
+	score = cmd[2]
+	if isImage {
+		s.ChannelMessageSend(cmd[0], fmt.Sprintf("Image score detected: %+v", score))
+	} else {
+		s.ChannelMessageSend(cmd[0], fmt.Sprintf("Integer score detected: %+v", score))
+	}
+}
+
+func IAcheck(s *discordgo.Session, cmd []string) {
+	s.ChannelMessageSend(cmd[0], fmt.Sprintf("I have received your request."))
+}
+
+func PvPcheck(s *discordgo.Session, cmd []string) {
+	s.ChannelMessageSend(cmd[0], fmt.Sprintf("I have received your request."))
 }
