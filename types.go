@@ -1,5 +1,7 @@
 package main
 
+import "github.com/bwmarrin/discordgo"
+
 // Config struct for Old Buran bot
 type Config struct {
 	// GuildID is the ID of the Discord Guild the bot will interact with
@@ -12,4 +14,14 @@ type Config struct {
 	DBPassword string
 	// BotToken is the token of the Old Buran bot
 	BotToken string
+}
+
+type BotCommand struct {
+	Channel   string
+	DiscordID string
+	Command   string
+	Message   *discordgo.MessageCreate
+	Session   *discordgo.Session
+	Parts     []string
+	Response  string
 }

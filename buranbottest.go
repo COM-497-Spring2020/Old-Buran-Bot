@@ -3,12 +3,13 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/bwmarrin/discordgo"
 	"os"
 	"os/signal"
 	"strconv"
 	"strings"
 	"syscall"
+
+	"github.com/bwmarrin/discordgo"
 )
 
 var (
@@ -46,7 +47,14 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 	// Split input for use in command functions
 	parts := strings.Split(m.Content, " ")
-	if strings.Contains(parts[1], "iaadd") {
+	b := BotCommand{
+		Session:   s,
+		Message:   m,
+		Command:   parts[1],
+		DiscordID: m.Author.ID,
+		Parts:     parts,
+	}
+	if strings.Contains(b.Command, "iaadd") {
 		// Reassign parts[0] from Bot name to message Channel ID
 		// Reassign parts[1] from command (since we already know it) to Author ID (for mentions)
 		parts[0] = m.ChannelID
@@ -54,22 +62,20 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		IAadd(s, parts)
 		return
 	}
-	if strings.Contains(parts[1], "pvpadd") {
+	if strings.Contains(b.Command, "pvpadd") {
 		parts[0] = m.ChannelID
 		parts[1] = m.Author.ID
 		PvPadd(s, parts)
 		return
 	}
-	if strings.Contains(parts[1], "iacheck") {
+	if strings.Contains(b.Command, "iacheck") {
 		parts[0] = m.ChannelID
 		parts[1] = m.Author.ID
 		IAcheck(s, parts)
 		return
 	}
 	if strings.Contains(parts[1], "pvpcheck") {
-		parts[0] = m.ChannelID
-		parts[1] = m.Author.ID
-		PvPcheck(s, parts)
+		PvPcheck(b)
 		return
 	}
 
@@ -145,6 +151,15 @@ func IAcheck(s *discordgo.Session, cmd []string) {
 	s.ChannelMessageSend(cmd[0], fmt.Sprintf("I have received your request."))
 }
 
-func PvPcheck(s *discordgo.Session, cmd []string) {
-	s.ChannelMessageSend(cmd[0], fmt.Sprintf("I have received your request."))
+func PvPcheck(b BotCommand) {
+	b.Reply("I have received your request.")
+}
+
+// Reply will reply to the BotCommand.Message, tagging the sender. If b.Response is set, it will use that otherwise the string will be used
+func (b BotCommand) Reply(s string) {
+	if len(b.Response) > 0 {
+		b.Session.ChannelMessageSend(b.Channel, fmt.Sprintf("<@%+v>: %+v", b.DiscordID, b.Response))
+	} else {
+		b.Session.ChannelMessageSend(b.Channel, fmt.Sprintf("<@%+v>: %+v", b.DiscordID, s))
+	}
 }
