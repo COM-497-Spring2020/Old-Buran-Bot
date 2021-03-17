@@ -49,29 +49,22 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	parts := strings.Split(m.Content, " ")
 	b := BotCommand{
 		Session:   s,
+		Channel:   m.ChannelID,
 		Message:   m,
 		Command:   parts[1],
 		DiscordID: m.Author.ID,
 		Parts:     parts,
 	}
-	if strings.Contains(b.Command, "iaadd") {
-		// Reassign parts[0] from Bot name to message Channel ID
-		// Reassign parts[1] from command (since we already know it) to Author ID (for mentions)
-		parts[0] = m.ChannelID
-		parts[1] = m.Author.ID
-		IAadd(s, parts)
+	if strings.Contains(parts[1], "iaadd") {
+		IAadd(b)
 		return
 	}
-	if strings.Contains(b.Command, "pvpadd") {
-		parts[0] = m.ChannelID
-		parts[1] = m.Author.ID
-		PvPadd(s, parts)
+	if strings.Contains(parts[1], "pvpadd") {
+		PvPadd(b)
 		return
 	}
-	if strings.Contains(b.Command, "iacheck") {
-		parts[0] = m.ChannelID
-		parts[1] = m.Author.ID
-		IAcheck(s, parts)
+	if strings.Contains(parts[1], "iacheck") {
+		IAcheck(b)
 		return
 	}
 	if strings.Contains(parts[1], "pvpcheck") {
@@ -85,10 +78,10 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 }
 
 // IAadd will add an IA score to the database
-func IAadd(s *discordgo.Session, cmd []string) {
+func IAadd(b BotCommand) {
 	// Return if there aren't enough parts
-	if len(cmd) < 3 {
-		s.ChannelMessageSend(cmd[0], fmt.Sprintf("Invalid use of iaadd command <@%+v>. Not enough arguments.", cmd[1]))
+	if len(b.Parts) < 3 {
+		b.Reply(fmt.Sprintf("Invalid use of iaadd command <@%+v>. Not enough arguments.", b.DiscordID))
 		return
 	}
 	// For determining how to store in the database
@@ -96,31 +89,32 @@ func IAadd(s *discordgo.Session, cmd []string) {
 	// Score for echo if int or string
 	score := "0"
 	// Check if message is a link to an image on discord's CDN
-	if !strings.HasPrefix(cmd[2], "https://cdn.discordapp.com/attachments/") {
+	if !strings.HasPrefix(b.Parts[2], "https://cdn.discordapp.com/attachments/") {
 		// Message was not an image
 		isImage = false
 		// Try to convert to an int
-		if _, ok := strconv.Atoi(cmd[2]); ok != nil {
+		if _, ok := strconv.Atoi(b.Parts[2]); ok != nil {
 			// Could not convert to an int, invalid score!
-			s.ChannelMessageSend(cmd[0], fmt.Sprintf("Invalid use of iaadd command <@%+v>.", cmd[1]))
+			b.Reply("Invalid use of iaadd command. Not enough arguments.")
 			return
 		}
 	}
 	// Save score for printing
-	score = cmd[2]
+	score = b.Parts[2]
 	if isImage {
-		s.ChannelMessageSend(cmd[0], fmt.Sprintf("Image score detected: %+v", score))
+		b.Response = fmt.Sprintf("Image score detected: %+v", score)
 	} else {
-		s.ChannelMessageSend(cmd[0], fmt.Sprintf("Integer score detected: %+v", score))
+		b.Response = fmt.Sprintf("Integer score detected: %+v", score)
 	}
+	b.Reply("")
 
 }
 
 // PvPadd will add a PvP score to the database
-func PvPadd(s *discordgo.Session, cmd []string) {
+func PvPadd(b BotCommand) {
 	// Return if there aren't enough parts
-	if len(cmd) < 3 {
-		s.ChannelMessageSend(cmd[0], fmt.Sprintf("Invalid use of pvpadd command <@%+v>. Not enough arguments.", cmd[1]))
+	if len(b.Parts) < 3 {
+		b.Reply("Invalid use of pvpadd command <@%+v>. Not enough arguments.")
 		return
 	}
 	// For determining how to store in the database
@@ -128,27 +122,28 @@ func PvPadd(s *discordgo.Session, cmd []string) {
 	// Score for echo if int or string
 	score := "0"
 	// Check if message is a link to an image on Discord's CDN
-	if !strings.HasPrefix(cmd[2], "https://cdn.discordapp.com/attachments/") {
+	if !strings.HasPrefix(b.Parts[2], "https://cdn.discordapp.com/attachments/") {
 		// Message was not an image
 		isImage = false
 		// Try to convert to an int
-		if _, ok := strconv.Atoi(cmd[2]); ok != nil {
+		if _, ok := strconv.Atoi(b.Parts[2]); ok != nil {
 			// Could not convert to an int, invalid score!
-			s.ChannelMessageSend(cmd[0], fmt.Sprintf("Invalid use of pvpadd command <@%+v>.", cmd[1]))
+			b.Reply("Invalid use of pvpadd command.")
 			return
 		}
 	}
 	// Save score for printing
-	score = cmd[2]
+	score = b.Parts[2]
 	if isImage {
-		s.ChannelMessageSend(cmd[0], fmt.Sprintf("Image score detected: %+v", score))
+		b.Response = fmt.Sprintf("Image score detected: %+v", score)
 	} else {
-		s.ChannelMessageSend(cmd[0], fmt.Sprintf("Integer score detected: %+v", score))
+		b.Response = fmt.Sprintf("Integer score detected: %+v", score)
 	}
+	b.Reply("")
 }
 
-func IAcheck(s *discordgo.Session, cmd []string) {
-	s.ChannelMessageSend(cmd[0], fmt.Sprintf("I have received your request."))
+func IAcheck(b BotCommand) {
+	b.Reply("I have received your request.")
 }
 
 func PvPcheck(b BotCommand) {
