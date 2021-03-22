@@ -13,24 +13,24 @@ import (
 )
 
 var (
-	token      string
 	configFile string
+	config     Config
 	dg         *discordgo.Session
 )
 
 func init() {
-	// To be removed after config is implemented
-	flag.StringVar(&token, "t", "", "Bot Token")
 	flag.StringVar(&configFile, "c", "", "Config file")
 	flag.Parse()
 }
 
 func main() {
-	if token == "" {
-		fmt.Printf("No token provided.")
+	if configFile == "" {
+		return
+	} else {
+		loadConfig()
 	}
-
-	dg, _ = discordgo.New("Bot " + token)
+	fmt.Printf("%+v\n", config)
+	dg, _ = discordgo.New("Bot " + config.BotToken)
 	dg.AddHandler(messageCreate)
 	_ = dg.Open()
 	sc := make(chan os.Signal, 1)
@@ -42,7 +42,7 @@ func main() {
 func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	// Return if message came from a bot, or doesn't mention this bot
-	if m.Author.Bot || !strings.Contains(m.Content, s.State.User.ID) {
+	if m.Author.Bot || !strings.Contains(m.Content, s.State.User.ID) || m.GuildID != config.GuildID {
 		return
 	}
 	// Split input for use in command functions
@@ -55,25 +55,25 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		DiscordID: m.Author.ID,
 		Parts:     parts,
 	}
-	if strings.Contains(parts[1], "iaadd") {
+	if strings.Contains(b.Command, "iaadd") {
 		IAadd(b)
 		return
 	}
-	if strings.Contains(parts[1], "pvpadd") {
+	if strings.Contains(b.Command, "pvpadd") {
 		PvPadd(b)
 		return
 	}
-	if strings.Contains(parts[1], "iacheck") {
+	if strings.Contains(b.Command, "iacheck") {
 		IAcheck(b)
 		return
 	}
-	if strings.Contains(parts[1], "pvpcheck") {
+	if strings.Contains(b.Command, "pvpcheck") {
 		PvPcheck(b)
 		return
 	}
 
 	// No valid command found
-	s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Unknown command: %+v", parts[1]))
+	b.Reply(fmt.Sprintf("Unknown command: %+v", b.Command))
 
 }
 
@@ -87,7 +87,7 @@ func IAadd(b BotCommand) {
 	// For determining how to store in the database
 	isImage := true
 	// Score for echo if int or string
-	score := "0"
+	score := 0
 	// Check if message is a link to an image on discord's CDN
 	if !strings.HasPrefix(b.Parts[2], "https://cdn.discordapp.com/attachments/") {
 		// Message was not an image
@@ -100,11 +100,16 @@ func IAadd(b BotCommand) {
 		}
 	}
 	// Save score for printing
-	score = b.Parts[2]
+	s := ScoreRow{
+		DiscordID:   b.DiscordID,
+		RatingType:  true,
+		RatingImage: isImage,
+		RatingScore: score,
+	}
 	if isImage {
-		b.Response = fmt.Sprintf("Image score detected: %+v", score)
+		b.Response = fmt.Sprintf("Image score detected: %+v", s.RatingScore)
 	} else {
-		b.Response = fmt.Sprintf("Integer score detected: %+v", score)
+		s.Insert()
 	}
 	b.Reply("")
 
@@ -120,7 +125,7 @@ func PvPadd(b BotCommand) {
 	// For determining how to store in the database
 	isImage := true
 	// Score for echo if int or string
-	score := "0"
+	score := 0
 	// Check if message is a link to an image on Discord's CDN
 	if !strings.HasPrefix(b.Parts[2], "https://cdn.discordapp.com/attachments/") {
 		// Message was not an image
@@ -133,21 +138,35 @@ func PvPadd(b BotCommand) {
 		}
 	}
 	// Save score for printing
-	score = b.Parts[2]
+
+	s := ScoreRow{
+		DiscordID:   b.DiscordID,
+		RatingType:  true,
+		RatingImage: isImage,
+		RatingScore: score,
+	}
 	if isImage {
-		b.Response = fmt.Sprintf("Image score detected: %+v", score)
+		b.Response = fmt.Sprintf("Image score detected: %+v", s.RatingScore)
 	} else {
-		b.Response = fmt.Sprintf("Integer score detected: %+v", score)
+		s.Insert()
 	}
 	b.Reply("")
 }
 
 func IAcheck(b BotCommand) {
-	b.Reply("I have received your request.")
+	s := ScoreRow{
+		DiscordID: b.DiscordID,
+	}
+	s.Retrieve()
+	b.Reply(fmt.Sprintf("I have received your request and found %+v.", s))
 }
 
 func PvPcheck(b BotCommand) {
-	b.Reply("I have received your request.")
+	s := ScoreRow{
+		DiscordID: b.DiscordID,
+	}
+	s.Retrieve()
+	b.Reply(fmt.Sprintf("I have received your request and found %+v.", s))
 }
 
 // Reply will reply to the BotCommand.Message, tagging the sender. If b.Response is set, it will use that otherwise the string will be used
