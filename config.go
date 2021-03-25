@@ -8,8 +8,12 @@ import (
 
 func loadConfig() {
 	var c Config
-	confFile, _ := ioutil.ReadFile(configFile)
-	err := json.Unmarshal([]byte(confFile), &c)
+	confFile, err := ioutil.ReadFile(configFile)
+	if err != nil {
+		fmt.Printf("%+v\n", err)
+		return
+	}
+	err = json.Unmarshal([]byte(confFile), &c)
 	if err != nil {
 		fmt.Printf("%+v\n", err)
 		return
@@ -20,13 +24,15 @@ func loadConfig() {
 }
 
 func saveConfig() {
-	//defer log.PanicSafe()
+	// defer log.PanicSafe()
 	file, err := json.Marshal(config)
 	if err != nil {
-		//log.LogErrorType(err)
+		fmt.Printf("%+v\n", err)
+		// log.LogErrorType(err)
 	}
 	err = ioutil.WriteFile(configFile, file, 0600)
 	if err != nil {
-		//log.LogErrorType(err)
+		fmt.Printf("%+v\n", err)
+		// log.LogErrorType(err)
 	}
 }

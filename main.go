@@ -42,7 +42,7 @@ func main() {
 func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	// Return if message came from a bot, or doesn't mention this bot
-	if m.Author.Bot || !strings.Contains(m.Content, s.State.User.ID) || m.GuildID != config.GuildID {
+	if m.Author.Bot || !strings.Contains(m.Content, s.State.User.ID) || !strings.Contains(config.GuildID, m.GuildID) {
 		return
 	}
 	// Split input for use in command functions

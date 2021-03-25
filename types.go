@@ -1,7 +1,6 @@
 package main
 
 import "github.com/bwmarrin/discordgo"
-import "time"
 
 // Config struct for Old Buran bot
 type Config struct {
@@ -27,12 +26,10 @@ type BotCommand struct {
 	Response  string
 }
 
-
 type ScoreRow struct {
 	DiscordID   string
 	RatingType  bool
 	RatingScore int
 	RatingImage bool
-	TimeStamp   time.Time
+	TimeStamp   string
 }
-
