@@ -33,10 +33,9 @@ func (s *ScoreRow) Insert() {
 func (s *ScoreRow) Retrieve() {
 	db := openDB()
 	defer db.Close()
-	query := "SELECT DiscordID, RatingType, RatingScore, RatingImage, TimeStamp from scores where DiscordID=?"
-
-	err := db.QueryRow(query, s.DiscordID).Scan(&s.DiscordID,
-		&s.RatingImage, &s.RatingScore, &s.RatingImage, &s.TimeStamp)
+	query := "SELECT DiscordID, RatingType, RatingScore, RatingImage, TimeStamp from scores where DiscordID=? and RatingType=?"
+	err := db.QueryRow(query, s.DiscordID, s.RatingType).Scan(&s.DiscordID,
+		&s.RatingType, &s.RatingScore, &s.RatingImage, &s.TimeStamp)
 	if err != nil {
 		fmt.Printf("%+v", err)
 	}

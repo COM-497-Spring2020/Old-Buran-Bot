@@ -93,10 +93,12 @@ func IAadd(b BotCommand) {
 		// Message was not an image
 		isImage = false
 		// Try to convert to an int
-		if _, ok := strconv.Atoi(b.Parts[2]); ok != nil {
+		if intScore, ok := strconv.Atoi(b.Parts[2]); ok != nil {
 			// Could not convert to an int, invalid score!
 			b.Reply("Invalid use of iaadd command. Not enough arguments.")
 			return
+		} else {
+			score = intScore
 		}
 	}
 	// Save score for printing
@@ -106,10 +108,25 @@ func IAadd(b BotCommand) {
 		RatingImage: isImage,
 		RatingScore: score,
 	}
+
+	x := ScoreRow{
+		DiscordID:  b.DiscordID,
+		RatingType: true,
+	}
+
 	if isImage {
 		b.Response = fmt.Sprintf("Image score detected: %+v", s.RatingScore)
+
+	} else {
+
+		b.Response = fmt.Sprintf("Inserting %+v", s)
+	}
+	x.Retrieve()
+	if x.TimeStamp != "" {
+		s.Update()
 	} else {
 		s.Insert()
+
 	}
 	b.Reply("")
 
@@ -131,22 +148,34 @@ func PvPadd(b BotCommand) {
 		// Message was not an image
 		isImage = false
 		// Try to convert to an int
-		if _, ok := strconv.Atoi(b.Parts[2]); ok != nil {
+		if intScore, ok := strconv.Atoi(b.Parts[2]); ok != nil {
 			// Could not convert to an int, invalid score!
 			b.Reply("Invalid use of pvpadd command.")
 			return
+		} else {
+			score = intScore
 		}
 	}
 	// Save score for printing
 
 	s := ScoreRow{
 		DiscordID:   b.DiscordID,
-		RatingType:  true,
+		RatingType:  false,
 		RatingImage: isImage,
 		RatingScore: score,
 	}
+	x := ScoreRow{
+		DiscordID:  b.DiscordID,
+		RatingType: false,
+	}
 	if isImage {
 		b.Response = fmt.Sprintf("Image score detected: %+v", s.RatingScore)
+	} else {
+		b.Response = fmt.Sprintf("Inserting %+v", s)
+	}
+	x.Retrieve()
+	if x.TimeStamp != "" {
+		s.Update()
 	} else {
 		s.Insert()
 	}
