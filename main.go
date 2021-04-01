@@ -3,6 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
+	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"strconv"
@@ -16,20 +19,24 @@ var (
 	configFile string
 	config     Config
 	dg         *discordgo.Session
+	debug      bool
 )
 
 func init() {
 	flag.StringVar(&configFile, "c", "", "Config file")
+	flag.BoolVar(&debug, "d", false, "Debug flag")
 	flag.Parse()
 }
 
 func main() {
+	LogMsg("Debug mode enabled.")
 	if configFile == "" {
+		fmt.Println("No config specified.")
 		return
 	} else {
 		loadConfig()
 	}
-	fmt.Printf("%+v\n", config)
+	LogMsg("Config: %+v\n", config)
 	dg, _ = discordgo.New("Bot " + config.BotToken)
 	dg.AddHandler(messageCreate)
 	_ = dg.Open()
@@ -40,9 +47,10 @@ func main() {
 }
 
 func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
-
+	LogMsg("Detected incoming message.")
 	// Return if message came from a bot, or doesn't mention this bot
 	if m.Author.Bot || !strings.Contains(m.Content, s.State.User.ID) || !strings.Contains(config.GuildID, m.GuildID) {
+		LogMsg("Ignoring message.")
 		return
 	}
 	// Split input for use in command functions
@@ -55,6 +63,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		DiscordID: m.Author.ID,
 		Parts:     parts,
 	}
+	LogMsg("Command detected: %+v", b)
 	if strings.Contains(b.Command, "iaadd") {
 		IAadd(b)
 		return
@@ -114,17 +123,12 @@ func IAadd(b BotCommand) {
 		RatingType: true,
 	}
 
-	if isImage {
-		b.Response = fmt.Sprintf("Image score detected: %+v", s.RatingScore)
-
-	} else {
-
-		b.Response = fmt.Sprintf("Inserting %+v", s)
-	}
 	x.Retrieve()
 	if x.TimeStamp != "" {
+		b.Response = fmt.Sprintf("Updating %+v", s)
 		s.Update()
 	} else {
+		b.Response = fmt.Sprintf("Inserting %+v", s)
 		s.Insert()
 
 	}
@@ -175,16 +179,20 @@ func PvPadd(b BotCommand) {
 	}
 	x.Retrieve()
 	if x.TimeStamp != "" {
+		b.Response = fmt.Sprintf("Updating %+v", s)
 		s.Update()
 	} else {
+		b.Response = fmt.Sprintf("Inserting %+v", s)
 		s.Insert()
+
 	}
 	b.Reply("")
 }
 
 func IAcheck(b BotCommand) {
 	s := ScoreRow{
-		DiscordID: b.DiscordID,
+		DiscordID:  b.DiscordID,
+		RatingType: true,
 	}
 	s.Retrieve()
 	b.Reply(fmt.Sprintf("I have received your request and found %+v.", s))
@@ -192,7 +200,8 @@ func IAcheck(b BotCommand) {
 
 func PvPcheck(b BotCommand) {
 	s := ScoreRow{
-		DiscordID: b.DiscordID,
+		DiscordID:  b.DiscordID,
+		RatingType: false,
 	}
 	s.Retrieve()
 	b.Reply(fmt.Sprintf("I have received your request and found %+v.", s))
@@ -204,5 +213,37 @@ func (b BotCommand) Reply(s string) {
 		b.Session.ChannelMessageSend(b.Channel, fmt.Sprintf("<@%+v>: %+v", b.DiscordID, b.Response))
 	} else {
 		b.Session.ChannelMessageSend(b.Channel, fmt.Sprintf("<@%+v>: %+v", b.DiscordID, s))
+	}
+}
+
+func storeImage(b BotCommand, s ScoreRow) {
+	LogMsg("Input detected", b)
+	if len(b.Message.Attachments) != 1 {
+		LogMsg("No attachments detected, or too many!")
+		return
+	}
+
+	LogMsg("Input detected", b)
+	fileURL, _ := url.Parse(b.Message.Attachments[0].ProxyURL)
+	path := fileURL.Path
+	segments := strings.Split(path, "/")
+
+	filename := segments[len(segments)-1]
+	file, _ := os.Create(fmt.Sprintf("./buran_users/%+v-%+v-%+v", s.DiscordID, s.RatingType, filename))
+	client := http.Client{
+		CheckRedirect: func(r *http.Request, via []*http.Request) error {
+			r.URL.Opaque = r.URL.Path
+			return nil
+		},
+	}
+	resp, err := client.Get(b.Message.Attachments[0].ProxyURL)
+	if err != nil {
+		LogMsg("Unable to download verification %+v-%+v-%+v, s.DiscordID, s.RatingType, filename")
+	}
+	defer resp.Body.Close()
+	defer file.Close()
+	_, err = io.Copy(file, resp.Body)
+	if err != nil {
+		LogMsg("Unable to store verification %+v-%+v", b.DiscordID, filename)
 	}
 }
