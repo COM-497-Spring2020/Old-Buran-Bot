@@ -123,6 +123,10 @@ func IAadd(b BotCommand) {
 		RatingType: true,
 	}
 
+	if isImage {
+		storeImage(b, s)
+	}
+
 	x.Retrieve()
 	if x.TimeStamp != "" {
 		b.Response = fmt.Sprintf("Updating %+v", s)
@@ -173,10 +177,9 @@ func PvPadd(b BotCommand) {
 		RatingType: false,
 	}
 	if isImage {
-		b.Response = fmt.Sprintf("Image score detected: %+v", s.RatingScore)
-	} else {
-		b.Response = fmt.Sprintf("Inserting %+v", s)
+		storeImage(b, s)
 	}
+
 	x.Retrieve()
 	if x.TimeStamp != "" {
 		b.Response = fmt.Sprintf("Updating %+v", s)
@@ -218,25 +221,32 @@ func (b BotCommand) Reply(s string) {
 
 func storeImage(b BotCommand, s ScoreRow) {
 	LogMsg("Input detected", b)
-	if len(b.Message.Attachments) != 1 {
-		LogMsg("No attachments detected, or too many!")
+	if !strings.HasPrefix(b.Parts[2], "https://cdn.discordapp.com/attachments/") {
 		return
 	}
 
 	LogMsg("Input detected", b)
-	fileURL, _ := url.Parse(b.Message.Attachments[0].ProxyURL)
+	fileURL, err := url.Parse(b.Parts[2])
+	if err != nil {
+		LogMsg("Unable to parse attachment.")
+	}
 	path := fileURL.Path
 	segments := strings.Split(path, "/")
 
 	filename := segments[len(segments)-1]
-	file, _ := os.Create(fmt.Sprintf("./buran_users/%+v-%+v-%+v", s.DiscordID, s.RatingType, filename))
+	LogMsg("Input detected", b)
+	file, err := os.Create(fmt.Sprintf("./buran_users/%+v-%+v-%+v", s.DiscordID, s.RatingType, filename))
+	if err != nil {
+		LogMsg("Unable to create file.")
+	}
+
 	client := http.Client{
 		CheckRedirect: func(r *http.Request, via []*http.Request) error {
 			r.URL.Opaque = r.URL.Path
 			return nil
 		},
 	}
-	resp, err := client.Get(b.Message.Attachments[0].ProxyURL)
+	resp, err := client.Get(b.Parts[2])
 	if err != nil {
 		LogMsg("Unable to download verification %+v-%+v-%+v, s.DiscordID, s.RatingType, filename")
 	}
