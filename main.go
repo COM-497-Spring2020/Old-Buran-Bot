@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"syscall"
@@ -82,7 +83,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 
 	// No valid command found
-	b.Reply(fmt.Sprintf("Unknown command: %+v", b.Command))
+	b.Reply(fmt.Sprintf("Unknown command: %+v. Ping me with **iaadd** followed by a number or a link to the in-game screenshot of your score to record your Infinity Arena high score. Ping me with **pvpadd** followed by a number or a link to the in-game screenshot of your leaderboard high score to record your PvP leaderboard score. Ping me with **iacheck** or **pvpcheck** to request the information you have inserted.", b.Command))
 
 }
 
@@ -125,14 +126,15 @@ func IAadd(b BotCommand) {
 
 	if isImage {
 		storeImage(b, s)
+		b.Response = fmt.Sprintf("Updating your Infinity Arena High Score with the provided image.")
 	}
 
 	x.Retrieve()
 	if x.TimeStamp != "" {
-		b.Response = fmt.Sprintf("Updating %+v", s)
+		b.Response = fmt.Sprintf("Updating Infinity Arena High Score with the provided information.")
 		s.Update()
 	} else {
-		b.Response = fmt.Sprintf("Inserting %+v", s)
+		b.Response = fmt.Sprintf("Inserting Infinity Arena High Score.")
 		s.Insert()
 
 	}
@@ -178,14 +180,16 @@ func PvPadd(b BotCommand) {
 	}
 	if isImage {
 		storeImage(b, s)
+		b.Response = fmt.Sprintf("Updating your PvP Leaderboard High Score with the provided image.")
+
 	}
 
 	x.Retrieve()
 	if x.TimeStamp != "" {
-		b.Response = fmt.Sprintf("Updating %+v", s)
+		b.Response = fmt.Sprintf("Updating PvP Leaderboard High Score with the provided information.")
 		s.Update()
 	} else {
-		b.Response = fmt.Sprintf("Inserting %+v", s)
+		b.Response = fmt.Sprintf("Inserting PvP Leaderboard High Score.")
 		s.Insert()
 
 	}
@@ -193,12 +197,38 @@ func PvPadd(b BotCommand) {
 }
 
 func IAcheck(b BotCommand) {
+
 	s := ScoreRow{
 		DiscordID:  b.DiscordID,
 		RatingType: true,
 	}
 	s.Retrieve()
-	b.Reply(fmt.Sprintf("I have received your request and found %+v.", s))
+	if s.RatingImage {
+		b.Response = fmt.Sprintf("See image above.")
+		upperDirPattern := fmt.Sprintf("./buran_users/%+v-%+v-*", b.DiscordID, s.RatingType)
+
+		matches, err := filepath.Glob(upperDirPattern)
+
+		if err != nil {
+			fmt.Println(err)
+		}
+		if len(matches) != 1 {
+			b.Session.ChannelMessageSend(b.Channel, fmt.Sprintf("Error with your thing"))
+			return
+		}
+
+		fmt.Println(matches)
+
+		RatingImage, err := os.Open(matches[0])
+		if err != nil {
+			LogMsg("Some log words here")
+			return
+
+		}
+		msg := fmt.Sprintf("I have received your request.")
+		b.Session.ChannelFileSendWithMessage(b.Channel, msg, matches[0], RatingImage)
+	}
+	b.Reply(fmt.Sprintf("Your Infinity Arena High Score is: %+v.", s.RatingScore))
 }
 
 func PvPcheck(b BotCommand) {
@@ -207,7 +237,31 @@ func PvPcheck(b BotCommand) {
 		RatingType: false,
 	}
 	s.Retrieve()
-	b.Reply(fmt.Sprintf("I have received your request and found %+v.", s))
+	if s.RatingImage {
+		b.Response = fmt.Sprintf("See image above.")
+		upperDirPattern := fmt.Sprintf("./buran_users/%+v-%+v-*", b.DiscordID, s.RatingType)
+
+		matches, err := filepath.Glob(upperDirPattern)
+
+		if err != nil {
+			fmt.Println(err)
+		}
+		if len(matches) != 1 {
+			b.Session.ChannelMessageSend(b.Channel, fmt.Sprintf("Error with your things"))
+			return
+		}
+
+		fmt.Println(matches)
+
+		RatingImage, err := os.Open(matches[0])
+		if err != nil {
+			LogMsg("Some log words here")
+			return
+		}
+		msg := fmt.Sprintf("I have received your request.")
+		b.Session.ChannelFileSendWithMessage(b.Channel, msg, matches[0], RatingImage)
+	}
+	b.Reply(fmt.Sprintf("Your PvP Leaderboard High Score is: %+v.", s.RatingScore))
 }
 
 // Reply will reply to the BotCommand.Message, tagging the sender. If b.Response is set, it will use that otherwise the string will be used
@@ -234,6 +288,17 @@ func storeImage(b BotCommand, s ScoreRow) {
 	segments := strings.Split(path, "/")
 
 	filename := segments[len(segments)-1]
+	upperDirPattern := fmt.Sprintf("./buran_users/%+v-%+v-*", b.DiscordID, s.RatingType)
+	matches, err := filepath.Glob(upperDirPattern)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	if len(matches) != 0 {
+		os.Remove(matches[0])
+	}
+
 	LogMsg("Input detected", b)
 	file, err := os.Create(fmt.Sprintf("./buran_users/%+v-%+v-%+v", s.DiscordID, s.RatingType, filename))
 	if err != nil {
