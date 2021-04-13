@@ -99,16 +99,21 @@ func IAadd(b BotCommand) {
 	// Score for echo if int or string
 	score := 0
 	// Check if message is a link to an image on discord's CDN
-	if !strings.HasPrefix(b.Parts[2], "https://cdn.discordapp.com/attachments/") || !strings.HasPrefix(b.Parts[2], "https://media.discordapp.net/attachments/") {
+	if !strings.HasPrefix(b.Parts[2], "https://cdn.discordapp.com/attachments/") {
 		// Message was not an image
 		isImage = false
 		// Try to convert to an int
-		if intScore, ok := strconv.Atoi(b.Parts[2]); ok != nil {
-			// Could not convert to an int, invalid score!
-			b.Reply("Invalid use of iaadd command. Not enough arguments.")
-			return
-		} else {
-			score = intScore
+
+		if !strings.HasPrefix(b.Parts[2], "https://media.discordapp.net/attachments/") {
+			isImage = false
+
+			if intScore, ok := strconv.Atoi(b.Parts[2]); ok != nil {
+				// Could not convert to an int, invalid score!
+				b.Reply("Invalid use of iaadd command. Not enough arguments.")
+				return
+			} else {
+				score = intScore
+			}
 		}
 	}
 	// Save score for printing
@@ -154,16 +159,19 @@ func PvPadd(b BotCommand) {
 	// Score for echo if int or string
 	score := 0
 	// Check if message is a link to an image on Discord's CDN
-	if !strings.HasPrefix(b.Parts[2], "https://cdn.discordapp.com/attachments/") || !strings.HasPrefix(b.Parts[2], "https://media.discordapp.net/attachments/") {
+	if !strings.HasPrefix(b.Parts[2], "https://cdn.discordapp.com/attachments/") {
 		// Message was not an image
 		isImage = false
-		// Try to convert to an int
-		if intScore, ok := strconv.Atoi(b.Parts[2]); ok != nil {
-			// Could not convert to an int, invalid score!
-			b.Reply("Invalid use of pvpadd command.")
-			return
-		} else {
-			score = intScore
+		if !strings.HasPrefix(b.Parts[2], "https://media.discordap..net/attachments/") {
+			isImage = false
+			// Try to convert to an int
+			if intScore, ok := strconv.Atoi(b.Parts[2]); ok != nil {
+				// Could not convert to an int, invalid score!
+				b.Reply("Invalid use of pvpadd command.")
+				return
+			} else {
+				score = intScore
+			}
 		}
 	}
 	// Save score for printing
